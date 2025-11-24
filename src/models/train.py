@@ -16,7 +16,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import cohen_kappa_score, f1_score
 import matplotlib.pyplot as plt
 import joblib
-
+import json
 
 # Constants used:
 current_date = datetime.datetime.now().strftime("%Y_%B_%d")
@@ -188,3 +188,12 @@ with open(os.path.join(output_dir, "LR_classification_report_train.txt"), "w") a
 # Save the best Logistic Regression model
 model_results[lr_model_path] = model_classification_report
 
+# Save column list and model results
+column_list_path = './artifacts/columns_list.json'
+with open(column_list_path, 'w+') as columns_file:
+    columns = {'column_names': list(X_train.columns)}
+    json.dump(columns, columns_file)
+
+model_results_path = "./artifacts/model_results.json"
+with open(model_results_path, 'w+') as results_file:
+    json.dump(model_results, results_file)
