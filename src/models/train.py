@@ -101,3 +101,13 @@ train_crosstab.to_csv(os.path.join(output_dir, "confusion_matrix_train.csv"))
 train_report = classification_report(y_train, y_pred_train)
 with open(os.path.join(output_dir, "classification_report_train.txt"), "w") as f:
     f.write(train_report)
+
+# Save the best XGBoost model
+xgboost_model = model_grid.best_estimator_
+xgboost_model_path = "./artifacts/lead_model_xgboost.json"
+xgboost_model.save_model(xgboost_model_path)
+
+model_results = {
+    xgboost_model_path: classification_report(y_train, y_pred_train, output_dict=True)
+}
+
