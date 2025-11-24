@@ -76,3 +76,12 @@ Below, we provide information on how we will assess the submission clustered aro
 ## Questions
 
 If you have any questions about the information shared here, please feel free to post them on Learnit. Answers to private emails on this topic will also be shared on Learnit, along with the original email content, so that everyone has access to the same information.
+
+# Our README version
+The repository is split into multiple folders:
+- docs
+- models
+- notebooks
+- references
+- reports
+- src
