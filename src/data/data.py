@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 import subprocess
-
+from pathlib import Path
 from src.utils import describe_numeric_col, impute_missing_values
 
 #Dates
@@ -23,11 +23,11 @@ pd.set_option('display.float_format',lambda x: "%.3f" % x)
 
 #Pull data from DVC in the root of the project
 def dvc_pull():
-    PROJECT_ROOT = r"C:\Users\Frederik\MLOps_2025_Project"
+    project_root = Path(__file__).resolve().parent
 
     subprocess.run(
         ["dvc", "pull"],
-        cwd=PROJECT_ROOT,
+        cwd=project_root,
         check=True
     )
 
