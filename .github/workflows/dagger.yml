@@ -24,8 +24,9 @@ jobs:
       - name: Run Dagger pipeline
         uses: dagger/dagger-for-github@v5
         with:
-          workdir: workflow
+          workdir: .
           verb: run
-          args: go run .
+          args: go run ./workflow
 
           engine-version: "v0.21.4"
+
