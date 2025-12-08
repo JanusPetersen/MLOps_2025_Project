@@ -34,7 +34,7 @@ def dvc_pull():
 dvc_pull()
 
 
-data = pd.read_csv("raw_data.csv")
+data = pd.read_csv("src/data/raw_data.csv")
 
 #Making sure date limits are set correctly
 if not max_date:
