@@ -1,22 +1,10 @@
 from mlflow.tracking import MlflowClient
+from src.utils import wait_for_deployment
 
 model_version = 1
-
+model_name = "lead_model"
 client = MlflowClient()
 
-def wait_for_deployment(model_name, model_version, stage='Staging'):
-    status = False
-    while not status:
-        model_version_details = dict(
-            client.get_model_version(name=model_name,version=model_version)
-            )
-        if model_version_details['current_stage'] == stage:
-            print(f'Transition completed to {stage}')
-            status = True
-            break
-        else:
-            time.sleep(2)
-    return status
 
 model_version_details = dict(client.get_model_version(name=model_name,version=model_version))
 model_status = True
