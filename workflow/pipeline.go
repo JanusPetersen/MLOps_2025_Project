@@ -26,11 +26,17 @@ func Build(ctx context.Context) error {
     }
     defer client.Close()
 
-    python := client.Container().From("python:3.12.2-bookworm").
-        WithDirectory("python", client.Host().Directory("python-files")).
-        WithExec([]string{"python", "--version"})
+    python := client.Container().
+        Build(client.Host().Directory(".")).
+        WithWorkdir("/app")
 
-    python = python.WithExec([]string{"python", "python/hello.py"})
+
+    python = python.WithExec([]string{"python", "--version"})
+
+    python = python.WithExec([]string{"python", "data/data.py"})
+    python = python.WithExec([]string{"python", "models/train.py"})
+    python = python.WithExec([]string{"python", "models/evaluate.py"})
+    python = python.WithExec([]string{"python", "models/Deploy.py"})
 
     _, err = python.
         Directory("output").
