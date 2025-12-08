@@ -15,10 +15,6 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 #Copy relevant code folders
-COPY data ./data
-COPY models ./models
 COPY src ./src
-COPY utils ./utils
-COPY config ./config
 COPY pyproject.toml .
 COPY README.md .
