@@ -33,10 +33,10 @@ func Build(ctx context.Context) error {
 
     python = python.WithExec([]string{"python", "--version"})
 
-    python = python.WithExec([]string{"python", "data/data.py"})
-    python = python.WithExec([]string{"python", "models/train.py"})
-    python = python.WithExec([]string{"python", "models/evaluate.py"})
-    python = python.WithExec([]string{"python", "models/Deploy.py"})
+    python = python.WithExec([]string{"python", "src/data/data.py"})
+    python = python.WithExec([]string{"python", "src/models/train.py"})
+    python = python.WithExec([]string{"python", "src/models/evaluate.py"})
+    python = python.WithExec([]string{"python", "src/models/Deploy.py"})
 
     _, err = python.
         Directory("output").
