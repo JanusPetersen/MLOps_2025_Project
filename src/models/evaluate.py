@@ -1,6 +1,6 @@
 import datetime
 import mlflow
-from utils import wait_until_ready
+from src.utils import wait_until_ready
 import json
 import pandas as pd
 from mlflow.tracking import MlflowClient

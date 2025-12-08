@@ -2,7 +2,7 @@ import os
 import datetime
 import pandas as pd
 import mlflow
-from utils import create_dummy_cols
+from src.utils import create_dummy_cols
 from sklearn.model_selection import train_test_split
 from xgboost import XGBRFClassifier
 from sklearn.model_selection import RandomizedSearchCV

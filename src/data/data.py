@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 import joblib
 import subprocess
 
-from utils import describe_numeric_col, impute_missing_values
+from src.utils import describe_numeric_col, impute_missing_values
 
 #Dates
 max_date = "2024-01-31"
