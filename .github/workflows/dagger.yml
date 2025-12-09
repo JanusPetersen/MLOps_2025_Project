@@ -28,7 +28,7 @@ jobs:
       - name: Pull data via DVC on runner
         run: |
           cd src/data
-          dvc pull -v
+          dvc repro raw_data.csv.dvc -v
           cd ../..
           echo "Data files fetched:"
           ls -lh src/data/*.csv || echo "No CSV files found"
