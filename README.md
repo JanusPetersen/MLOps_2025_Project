@@ -35,6 +35,35 @@ This project implements an end-to-end machine learning pipeline that:
 
 The pipeline follows a modular architecture with clear separation of concerns:
 
+```mermaid
+flowchart TD
+    A[GitHub Actions Runner] --> B[Checkout Code]
+    B --> C[Pull Data via DVC<br/>raw_data.csv]
+    C --> D[Run Dagger Pipeline]
+    
+    D --> E
+    
+    subgraph DAGGER["Dagger Container (Python 3.10)"]
+        E[Data Processing]
+        F[Train Models]
+        G[Evaluate & Select]
+        H[Deploy Best Model]
+        I[artifacts/]
+        
+        E -->|train_data_gold.csv| F
+        F -->|models/| G
+        G -->|mlruns/| H
+        H -->|register| I
+    end
+    
+    I --> J[Export Artifacts]
+    J --> K[Upload model.pkl]
+    K --> L[Model Inference Test]
+    
+    style DAGGER fill:none,stroke:#333,stroke-width:2px
+    style L fill:#4CAF50,stroke:#333,color:#000
+```
+
 
 ## Project Structure
 
