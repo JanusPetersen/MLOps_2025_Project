@@ -35,7 +35,6 @@ This project implements an end-to-end machine learning pipeline that:
 
 The pipeline follows a modular architecture with clear separation of concerns:
 
-```
 flowchart TD
 
     A[GitHub Actions Runner] --> B[Checkout Code]
@@ -60,7 +59,6 @@ flowchart TD
 
     K --> L[Model Inference Test\n(Validation Action)]
 
-```
 
 ## Project Structure
 
