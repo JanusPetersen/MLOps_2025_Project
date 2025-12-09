@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/dagger-dvc-workflow
   workflow_dispatch:
 
 jobs:
@@ -28,10 +27,8 @@ jobs:
       - name: Pull data via DVC on runner
         run: |
           cd src/data
-          dvc pull -v
+          dvc pull
           cd ../..
-          echo "Data files fetched:"
-          ls -lh src/data/*.csv || echo "No CSV files found"
 
       - name: Run Dagger pipeline
         uses: dagger/dagger-for-github@v8.2.0
@@ -40,15 +37,6 @@ jobs:
           verb: run
           args: go run .
           version: "0.19.6"
-
-      - name: Print data step error log (if any)
-        if: failure()
-        run: |
-          echo "----- Checking for error logs -----"
-          if [ -f artifacts/data_py_error.log ]; then
-            echo "=== data_py_error.log ==="
-            cat artifacts/data_py_error.log
-          fi
 
       - name: Upload produced artifacts
         if: always()
