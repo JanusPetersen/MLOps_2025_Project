@@ -1,87 +1,471 @@
-# ITU BDS MLOPS'25 - Project
+# MLOps Lead Prediction Pipeline
 
-## Task
+A containerized machine learning pipeline for predicting lead conversion using Dagger, Docker, and GitHub Actions. This project demonstrates modern MLOps practices including automated CI/CD, model versioning with MLflow, and data version control with DVC.
 
-Based on the input provided (see below), fork the repository and restructure the code to adhere to the concepts and ideas you have seen throughout the course.  The diagram below provides a detailed overview of the structure that the solution is expected to follow.   
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Pipeline Stages](#pipeline-stages)
+- [Technologies Used](#technologies-used)
+- [Getting Started](#getting-started)
+- [GitHub Actions Workflow](#github-actions-workflow)
+- [Local Development](#local-development)
+- [Model Artifacts](#model-artifacts)
+- [Data Management](#data-management)
 
-![Project architecture](./docs/project-architecture.png)
+## Project Overview
 
-For the exam submission, we expect you to submit a pdf containing:
-- the list of members of the group
-- the link to the github.com public repository hosting your solution
-  - following the above, there is *no need* to invite the teaching staff as collaborators
+This project implements an end-to-end machine learning pipeline that:
+- Processes raw lead data with automated preprocessing
+- Trains multiple models (XGBoost, Logistic Regression) using grid search
+- Evaluates model performance with MLflow tracking
+- Automatically deploys the best performing model
+- Validates trained models using automated inference tests
+- Runs entirely in containerized environments for reproducibility
 
-The repository linked in the submission should contain:
+**Key Features:**
+- ✅ Fully containerized pipeline using Dagger
+- ✅ Automated CI/CD with GitHub Actions
+- ✅ Data versioning with DVC
+- ✅ Model tracking and registry with MLflow
+- ✅ Automated model validation
+- ✅ Reproducible builds with Docker
 
-- A README.md file that describes the project
-- GitHub automation workflow
-- Dagger workflow (in Go)
-- All history
+## Architecture
 
+The pipeline follows a modular architecture with clear separation of concerns:
 
-## Inputs
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    GitHub Actions Runner                     │
+│                                                               │
+│  1. Checkout Code                                            │
+│  2. Pull Data (DVC) ──> raw_data.csv                        │
+│  3. Run Dagger Pipeline ────────────────────────────┐        │
+│                                                      │        │
+│  ┌──────────────────────────────────────────────────▼──────┐ │
+│  │              Dagger Container (Python 3.10)             │ │
+│  │                                                          │ │
+│  │  ┌────────────┐   ┌──────────┐   ┌─────────────┐      │ │
+│  │  │   Data     │──▶│  Train   │──▶│  Evaluate   │      │ │
+│  │  │ Processing │   │  Models  │   │   & Select  │      │ │
+│  │  └────────────┘   └──────────┘   └─────────────┘      │ │
+│  │        │                 │               │              │ │
+│  │        ▼                 ▼               ▼              │ │
+│  │   train_data_gold.csv   models/      mlruns/          │ │
+│  │                                                          │ │
+│  │  ┌─────────────────────────────────────────────┐       │ │
+│  │  │           Deploy Best Model                  │       │ │
+│  │  │    (Register to MLflow Model Registry)      │       │ │
+│  │  └─────────────────────────────────────────────┘       │ │
+│  │                         │                                │ │
+│  │                         ▼                                │ │
+│  │                  artifacts/ ──────────────────┐         │ │
+│  └──────────────────────────────────────────────┼─────────┘ │
+│                                                  │           │
+│  4. Export Artifacts ◀───────────────────────────┘           │
+│  5. Upload model.pkl to GitHub Artifacts                    │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+              ┌─────────────────────────┐
+              │  Model Inference Test   │
+              │   (Validation Action)   │
+              └─────────────────────────┘
+```
 
-You are given the following material:
-- Python monolith (see `notebooks` folder)
-- Raw input data (see `notebooks/artifacts` folder)
-- GitHub action to test model inference (see [`model-validator`](https://github.com/lasselundstenjensen/itu-sdse-project-model-validator) action)
+## Project Structure
 
-## Outputs
+```
+MLOps_2025_Project/
+├── .github/
+│   └── workflows/
+│       └── dagger.yml              # GitHub Actions CI/CD workflow
+├── src/
+│   ├── data/
+│   │   ├── data.py                 # Data preprocessing pipeline
+│   │   ├── raw_data.csv            # Raw input data (pulled via DVC)
+│   │   └── raw_data.csv.dvc        # DVC pointer file
+│   ├── models/
+│   │   ├── train.py                # Model training (XGBoost, LogReg)
+│   │   ├── evaluate.py             # Model evaluation & selection
+│   │   └── Deploy.py               # Model registration & deployment
+│   └── utils.py                    # Shared utility functions
+├── workflow/
+│   ├── pipeline.go                 # Dagger pipeline orchestration (Go)
+│   └── go.mod                      # Go dependencies
+├── artifacts/                      # Pipeline outputs (exported)
+│   ├── train_data_gold.csv         # Processed training data
+│   ├── lead_model_lr.pkl           # Trained Logistic Regression model
+│   ├── lead_model_xgboost.json     # Trained XGBoost model
+│   ├── training_data.csv           # Intermediate processed data
+│   ├── X_test.csv, y_test.csv      # Test split data
+│   └── *.json, *.csv               # Various metadata & reports
+├── reports/
+│   └── figures/                    # Confusion matrices & reports
+├── Dockerfile                      # Container image definition
+├── requirements.txt                # Python dependencies
+├── .dvc/
+│   ├── config                      # DVC configuration
+│   └── cache/                      # DVC cached data files
+└── README.md                       # This file
+```
 
-- Your GitHub repository (including all history)
-  - A README.md file that describes the project
-  - GitHub automation workflow
-  - Dagger workflow (in Go)
-- Model artifact produced by GitHub workflow and named 'model'
+## Pipeline Stages
 
-> **NOTE:**
-> The Dagger workflow can be run locally or inside the GitHub workflow—both are viable options during development.
->
-> The Dagger workflow can run locally and can also be made to produce outputs locally during development. But when wrapping the Dagger workflow in a GitHub workflow, the output is instead stored inside the GitHub runner (i.e. a virtual machine).
->
-> Use the publicly available [`actions/upload-artifact`](https://github.com/actions/upload-artifact) to store the model artifact in the GitHub worklow pipeline.
->
-> This model artifact can then be picked up by the [action provided](https://github.com/lasselundstenjensen/itu-sdse-project-model-validator), which will run some inference tests to ensure that the correct model was trained.
+### 1. Data Processing (`src/data/data.py`)
+**Purpose:** Clean, transform, and prepare raw lead data for training
 
+**Operations:**
+- Load raw CSV data (1.3 MB, ~10k records)
+- Filter records by date range (2024-01-01 to 2024-01-31)
+- Handle missing values using imputation strategies
+- Detect and handle outliers using IQR method
+- Feature engineering: one-hot encoding for categorical variables
+- Feature scaling: MinMax normalization
+- Train/test split with stratification
 
-## How will we assess
+**Outputs:**
+- `train_data_gold.csv` - Final processed training dataset
+- `training_data.csv` - Intermediate processed data
+- `X_test.csv`, `y_test.csv` - Test split
+- Metadata files: `date_limits.json`, `columns_drift.json`, `outlier_summary.csv`
 
-Below, we provide information on how we will assess the submission clustered around several aspects.  The list relates to groups of size 3; if your group is of size 4, you are expected also to work on the optional items, i.e., to use pull requests and to provide tests.
+### 2. Model Training (`src/models/train.py`)
+**Purpose:** Train and optimize multiple ML models
 
-#### Versioning
+**Models Trained:**
+1. **XGBoost Random Forest Classifier**
+   - Hyperparameter tuning via RandomizedSearchCV
+   - Parameters: learning_rate, max_depth, subsample, etc.
+   - 10-fold cross-validation
+   
+2. **Logistic Regression**
+   - Hyperparameter tuning: solver, penalty, regularization (C)
+   - 3-fold cross-validation
+   - Saved as `lead_model_lr.pkl` for inference
 
-- Use of Git (semantic commit messages, branches, branch longevity, commit frequency/size)
-- Management of data
-- Use of pull requests (OPTIONAL)
+**MLflow Integration:**
+- Experiment tracking with timestamps
+- Metrics logged: F1-score, accuracy, confusion matrix
+- Model artifacts logged
+- Parameters tracked
 
-#### Programming
+**Outputs:**
+- `lead_model_xgboost.json` - XGBoost model
+- `lead_model_lr.pkl` - Logistic Regression model (for validation)
+- `model_results.json` - Performance metrics
+- Confusion matrices and classification reports in `reports/figures/`
 
-- Decomposition of Python notebook
-- Adherance to standard data science MLOps project structure
-- Presence of tests (OPTIONAL)
+### 3. Model Evaluation (`src/models/evaluate.py`)
+**Purpose:** Compare trained models and select the best performer
 
-#### Workflow automation
+**Process:**
+- Query MLflow for experiments by date
+- Compare F1-scores across models
+- Select best model based on weighted F1-score
+- Compare against production model (if exists)
+- Determine if new model should be promoted
 
-- Presence of a workflow that trains the model
-- Presence of a workflow that tests the model
-- Structure of Dagger workflow
-- Orchestration of Dagger workflow through GitHub workflow
+**Outputs:**
+- Model selection decision
+- Performance comparison metrics
 
-#### Documentation (README.md)
+### 4. Model Deployment (`src/models/Deploy.py`)
+**Purpose:** Register best model to MLflow Model Registry
 
-- Description of project structure
-- How to run the code and generate the model artifact
+**Operations:**
+- Register selected model to MLflow
+- Set model stage (Staging/Production)
+- Track model versions
+- Wait for model readiness
 
+## Technologies Used
 
-## Questions
+### Core Technologies
+- **Python 3.10** - Primary programming language
+- **Dagger (Go SDK)** - Pipeline orchestration and containerization
+- **Docker** - Container runtime
+- **GitHub Actions** - CI/CD automation
 
-If you have any questions about the information shared here, please feel free to post them on Learnit. Answers to private emails on this topic will also be shared on Learnit, along with the original email content, so that everyone has access to the same information.
+### ML/Data Stack
+- **scikit-learn 1.3.2** - ML algorithms and preprocessing
+- **XGBoost 1.7.6** - Gradient boosting models
+- **pandas 2.2.2** - Data manipulation
+- **numpy 1.26.4** - Numerical computing
+- **MLflow 2.11.3** - Experiment tracking and model registry
+- **DVC 3.59.1** - Data version control
 
-# Our README version
-The repository is split into multiple folders:
-- docs
-- models
-- notebooks
-- references
-- reports
-- src
+### Other Libraries
+- **matplotlib 3.8.4** - Plotting and visualization
+- **joblib 1.3.2** - Model serialization
+- **scipy 1.12.0** - Scientific computing
+- **protobuf <5.0.0** - MLflow compatibility
+
+## Getting Started
+
+### Prerequisites
+- Docker Desktop installed and running
+- Go 1.25.4 or later (for local Dagger execution)
+- Python 3.10+ (for local development)
+- Git with DVC installed (for data management)
+
+### Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/JanusPetersen/MLOps_2025_Project.git
+cd MLOps_2025_Project
+```
+
+2. **Pull data using DVC:**
+```bash
+cd src/data
+dvc pull
+cd ../..
+```
+
+3. **Install Python dependencies (optional, for local dev):**
+```bash
+pip install -r requirements.txt
+```
+
+## GitHub Actions Workflow
+
+The CI/CD pipeline is defined in `.github/workflows/dagger.yml` and runs automatically on push to `main` branch.
+
+### Workflow Steps
+
+1. **Checkout Code** - Clone the repository
+2. **Setup Go** - Install Go 1.25.4 for Dagger
+3. **Install DVC** - Install DVC with all extras
+4. **Pull Data** - Fetch `raw_data.csv` from DVC cache
+5. **Run Dagger Pipeline** - Execute containerized ML pipeline
+6. **Upload Artifacts** - Save all pipeline outputs
+7. **Prepare Model Artifact** - Copy and rename model to `model/model.pkl`
+8. **Upload Model** - Upload model artifact for validation
+9. **Run Inference Test** - Validate model using external action
+
+### Viewing Results
+
+After a workflow run:
+1. Go to **Actions** tab in GitHub
+2. Click on the latest workflow run
+3. Download artifacts:
+   - `pipeline-artifacts` - All pipeline outputs
+   - `model` - Trained model file
+
+### Manual Trigger
+
+You can manually trigger the workflow:
+```bash
+# Push to main branch, or
+# Use GitHub UI: Actions → Run Dagger pipeline → Run workflow
+```
+
+## Local Development
+
+### Running the Pipeline Locally
+
+```bash
+cd workflow
+go run .
+```
+
+This will:
+- Build the Docker image from the Dockerfile
+- Run all pipeline stages in the container
+- Export artifacts to `../artifacts/` directory
+
+### Testing Individual Scripts
+
+```bash
+# Ensure raw data is available
+cd src/data
+dvc pull
+
+# Run data processing
+cd ../..
+python src/data/data.py
+
+# Run training (requires processed data)
+python src/models/train.py
+
+# Run evaluation
+python src/models/evaluate.py
+```
+
+### Building Docker Image Manually
+
+```bash
+docker build -t mlops-pipeline .
+docker run -v $(pwd)/artifacts:/app/artifacts mlops-pipeline python src/data/data.py
+```
+
+## Model Artifacts
+
+### Model Format
+- **File:** `model.pkl` (renamed from `lead_model_lr.pkl`)
+- **Type:** Scikit-learn Logistic Regression (serialized with joblib)
+- **Size:** ~5-10 KB
+- **Features:** 50+ features after one-hot encoding
+
+### Model Performance Metrics
+Models are evaluated on:
+- **F1-Score (weighted)** - Primary metric
+- **Accuracy**
+- **Precision, Recall** (per class)
+- **Confusion Matrix**
+
+### Accessing Models
+
+**From GitHub Actions:**
+```yaml
+- uses: actions/download-artifact@v4
+  with:
+    name: model
+```
+
+**From MLflow:**
+```python
+import mlflow
+model = mlflow.pyfunc.load_model("models:/lead_model/Production")
+```
+
+## Data Management
+
+### Data Versioning with DVC
+
+The project uses DVC to version control the raw dataset:
+
+**DVC Configuration:**
+- Raw data URL: `https://raw.githubusercontent.com/Jeppe-T-K/itu-sdse-project-data/refs/heads/main/raw_data.csv`
+- DVC pointer: `src/data/raw_data.csv.dvc`
+- Cache location: `.dvc/cache/`
+
+**Data Pipeline:**
+```
+GitHub Raw URL → DVC Cache → src/data/raw_data.csv → Processing → artifacts/
+```
+
+### Updating Data
+
+To update the dataset:
+```bash
+cd src/data
+# Update raw_data.csv with new data
+dvc add raw_data.csv
+git add raw_data.csv.dvc .gitignore
+git commit -m "Update dataset"
+git push
+```
+
+### Data Statistics
+- **Format:** CSV
+- **Size:** ~1.3 MB
+- **Records:** ~10,000 leads
+- **Features:** Customer demographics, lead source, engagement metrics
+- **Target:** Binary lead conversion indicator
+
+## CI/CD Pipeline Flow
+
+```
+┌─────────────────┐
+│  Push to main   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│   GitHub Actions Triggered          │
+├─────────────────────────────────────┤
+│ 1. Setup environment (Go, DVC)      │
+│ 2. Pull data from DVC               │
+│ 3. Run Dagger pipeline:             │
+│    ┌──────────────────────────┐    │
+│    │  Docker Container        │    │
+│    │  - Data processing       │    │
+│    │  - Model training        │    │
+│    │  - Model evaluation      │    │
+│    │  - Model deployment      │    │
+│    └──────────────────────────┘    │
+│ 4. Export artifacts                 │
+│ 5. Upload model to GitHub           │
+└────────┬────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────┐
+│  Model Inference Validation         │
+│  (External Action)                  │
+├─────────────────────────────────────┤
+│ - Download model artifact           │
+│ - Load model with scikit-learn      │
+│ - Run inference tests               │
+│ - Validate predictions              │
+└────────┬────────────────────────────┘
+         │
+         ▼
+    ✅ Success / ❌ Failure
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**1. DVC Pull Fails**
+```bash
+# Ensure you're in the correct directory
+cd src/data
+dvc pull -v  # Verbose output for debugging
+```
+
+**2. Docker Build Fails**
+```bash
+# Clear Docker cache
+docker system prune -a
+docker build --no-cache -t mlops-pipeline .
+```
+
+**3. Protobuf Import Error**
+- Ensure `protobuf<5.0.0,>=3.20.0` is in requirements.txt
+- MLflow 2.11.3 requires protobuf <5.0.0
+
+**4. Module Import Errors in Container**
+- Ensure `ENV PYTHONPATH=/app` is set in Dockerfile
+- Check that `src/` directory structure is preserved
+
+**5. Pipeline Artifacts Not Found**
+- Check that `artifacts/` directory is created before use
+- Verify export path in `pipeline.go`: `artDir.Export(ctx, "../artifacts")`
+
+## Contributing
+
+This project follows standard Git workflow:
+
+1. Create a feature branch: `git checkout -b feat/feature-name`
+2. Make changes and commit: `git commit -m "feat: add feature"`
+3. Push and create PR: `git push origin feat/feature-name`
+4. Merge after CI passes
+
+**Commit Convention:**
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `refactor:` - Code restructuring
+- `docs:` - Documentation updates
+
+## License
+
+This project is part of ITU BDS MLOPS'25 coursework.
+
+## Authors
+
+- **Frederik** - Pipeline implementation, Dagger orchestration, CI/CD setup
+- **Janus Petersen** - GitHub: [@JanusPetersen](https://github.com/JanusPetersen)
+
+## Acknowledgments
+
+- ITU BDS MLOPS'25 Course Staff
+- [Dagger Documentation](https://docs.dagger.io/)
+- [MLflow Documentation](https://mlflow.org/docs/latest/index.html)
+- [Model Validator Action](https://github.com/lasselundstenjensen/itu-sdse-project-model-validator)
