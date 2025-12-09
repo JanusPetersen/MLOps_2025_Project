@@ -9,17 +9,16 @@ ENV PYTHONPATH=/app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgomp1 \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 #Copy requirements 
 COPY requirements.txt .
 
+#Install protobuf first to ensure correct version
+RUN pip install --no-cache-dir "protobuf<5.0.0,>=3.20.0"
+
 #Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
-#Install DVC with all extras to support various remotes
-RUN pip install --no-cache-dir "dvc[all]"
 
 #Copy relevant code folders
 COPY src ./src
