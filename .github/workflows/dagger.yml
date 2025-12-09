@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/dagger-dvc-workflow
   workflow_dispatch:
 
 jobs:
