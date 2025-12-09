@@ -63,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v4.4.0
         with:
           name: model
-          path: workflow/artifacts/lead_model_lr.pkl
+          path: artifacts/lead_model_lr.pkl
 
   inference:
     name: Run Model Inference Test
