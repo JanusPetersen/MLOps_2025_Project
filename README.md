@@ -24,55 +24,42 @@ This project implements an end-to-end machine learning pipeline that:
 - Runs entirely in containerized environments for reproducibility
 
 **Key Features:**
-- ✅ Fully containerized pipeline using Dagger
-- ✅ Automated CI/CD with GitHub Actions
-- ✅ Data versioning with DVC
-- ✅ Model tracking and registry with MLflow
-- ✅ Automated model validation
-- ✅ Reproducible builds with Docker
+- Fully containerized pipeline using Dagger
+- Automated CI/CD with GitHub Actions
+- Data versioning with DVC
+- Model tracking and registry with MLflow
+- Automated model validation
+- Reproducible builds with Docker
 
 ## Architecture
 
 The pipeline follows a modular architecture with clear separation of concerns:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    GitHub Actions Runner                     │
-│                                                               │
-│  1. Checkout Code                                            │
-│  2. Pull Data (DVC) ──> raw_data.csv                        │
-│  3. Run Dagger Pipeline ────────────────────────────┐        │
-│                                                      │        │
-│  ┌──────────────────────────────────────────────────▼──────┐ │
-│  │              Dagger Container (Python 3.10)             │ │
-│  │                                                          │ │
-│  │  ┌────────────┐   ┌──────────┐   ┌─────────────┐      │ │
-│  │  │   Data     │──▶│  Train   │──▶│  Evaluate   │      │ │
-│  │  │ Processing │   │  Models  │   │   & Select  │      │ │
-│  │  └────────────┘   └──────────┘   └─────────────┘      │ │
-│  │        │                 │               │              │ │
-│  │        ▼                 ▼               ▼              │ │
-│  │   train_data_gold.csv   models/      mlruns/          │ │
-│  │                                                          │ │
-│  │  ┌─────────────────────────────────────────────┐       │ │
-│  │  │           Deploy Best Model                  │       │ │
-│  │  │    (Register to MLflow Model Registry)      │       │ │
-│  │  └─────────────────────────────────────────────┘       │ │
-│  │                         │                                │ │
-│  │                         ▼                                │ │
-│  │                  artifacts/ ──────────────────┐         │ │
-│  └──────────────────────────────────────────────┼─────────┘ │
-│                                                  │           │
-│  4. Export Artifacts ◀───────────────────────────┘           │
-│  5. Upload model.pkl to GitHub Artifacts                    │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-              ┌─────────────────────────┐
-              │  Model Inference Test   │
-              │   (Validation Action)   │
-              └─────────────────────────┘
+flowchart TD
+
+    A[GitHub Actions Runner] --> B[Checkout Code]
+    B --> C[Pull Data (DVC)\nraw_data.csv]
+
+    C --> D[Dagger Pipeline]
+
+    subgraph DAGGER[Dagger Container (Python 3.10)]
+        E[Data Processing\n→ train_data_gold.csv]
+        F[Train Models\n→ models/]
+        G[Evaluate & Select\n→ mlruns/]
+
+        E --> F --> G
+
+        G --> H[Deploy Best Model\n(Register in MLflow Registry)]
+        H --> I[artifacts/]
+    end
+
+    D --> DAGGER
+    I --> J[Export Artifacts]
+    J --> K[Upload model.pkl to GitHub Artifacts]
+
+    K --> L[Model Inference Test\n(Validation Action)]
+
 ```
 
 ## Project Structure
