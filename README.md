@@ -59,7 +59,6 @@ flowchart TD
     J --> K[Upload model.pkl to GitHub Artifacts]
 
     K --> L[Model Inference Test\n(Validation Action)]
-'''
 
 ## Project Structure
 
