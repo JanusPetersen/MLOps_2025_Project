@@ -49,12 +49,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	//Copy the preprocessed train file into ./artifacts so train.py can read it
-	prep := []string{"sh", "-c", "mkdir -p artifacts && cp src/data/artifacts/train_data_gold.csv artifacts/"}
-	if _, err := run("prepare-data", prep); err != nil {
-		return err
-	}
-
 	//Train: run the training script
 	trainCmd := []string{"python", "-u", "src/models/train.py"}
 	if _, err := run("train", trainCmd); err != nil {
