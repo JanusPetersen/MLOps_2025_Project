@@ -12,6 +12,7 @@ A containerized machine learning pipeline for predicting lead conversion using D
 - [Local Development](#local-development)
 - [Model Artifacts](#model-artifacts)
 - [Data Management](#data-management)
+- [CI/CD Pipeline Flow](#ci/cd-pipeline-flow)
 
 ## Project Overview
 
@@ -108,8 +109,8 @@ MLOps_2025_Project/
 **Purpose:** Clean, transform, and prepare raw lead data for training
 
 **Operations:**
-- Load raw CSV data (1.3 MB, ~10k records)
-- Filter records by date range (2024-01-01 to 2024-01-31)
+- Load raw CSV data
+- Filter records by date range
 - Handle missing values using imputation strategies
 - Detect and handle outliers using IQR method
 - Feature engineering: one-hot encoding for categorical variables
@@ -144,7 +145,7 @@ MLOps_2025_Project/
 
 **Outputs:**
 - `lead_model_xgboost.json` - XGBoost model
-- `lead_model_lr.pkl` - Logistic Regression model (for validation)
+- `lead_model_lr.pkl` - Logistic Regression model
 - `model_results.json` - Performance metrics
 - Confusion matrices and classification reports in `reports/figures/`
 
@@ -155,7 +156,7 @@ MLOps_2025_Project/
 - Query MLflow for experiments by date
 - Compare F1-scores across models
 - Select best model based on weighted F1-score
-- Compare against production model (if exists)
+- Compare against production model
 - Determine if new model should be promoted
 
 **Outputs:**
@@ -167,17 +168,16 @@ MLOps_2025_Project/
 
 **Operations:**
 - Register selected model to MLflow
-- Set model stage (Staging/Production)
+- Set model stage
 - Track model versions
-- Wait for model readiness
 
 ## Getting Started
 
 ### Prerequisites
 - Docker Desktop installed and running
-- Go 1.25.4 or later (for local Dagger execution)
-- Python 3.10+ (for local development)
-- Git with DVC installed (for data management)
+- Go 1.25.4 or later
+- Python 3.10+
+- Git with DVC installed
 
 ### Installation
 
@@ -246,36 +246,12 @@ This will:
 - Run all pipeline stages in the container
 - Export artifacts to `../artifacts/` directory
 
-### Testing Individual Scripts
-
-```bash
-# Ensure raw data is available
-cd src/data
-dvc pull
-
-# Run data processing
-cd ../..
-python src/data/data.py
-
-# Run training (requires processed data)
-python src/models/train.py
-
-# Run evaluation
-python src/models/evaluate.py
-```
-
-### Building Docker Image Manually
-
-```bash
-docker build -t mlops-pipeline .
-docker run -v $(pwd)/artifacts:/app/artifacts mlops-pipeline python src/data/data.py
-```
 
 ## Model Artifacts
 
 ### Model Format
-- **File:** `model.pkl` (renamed from `lead_model_lr.pkl`)
-- **Type:** Scikit-learn Logistic Regression (serialized with joblib)
+- **File:** `model.pkl`
+- **Type:** Scikit-learn Logistic Regression
 - **Size:** ~5-10 KB
 - **Features:** 50+ features after one-hot encoding
 
@@ -285,21 +261,6 @@ Models are evaluated on:
 - **Accuracy**
 - **Precision, Recall** (per class)
 - **Confusion Matrix**
-
-### Accessing Models
-
-**From GitHub Actions:**
-```yaml
-- uses: actions/download-artifact@v4
-  with:
-    name: model
-```
-
-**From MLflow:**
-```python
-import mlflow
-model = mlflow.pyfunc.load_model("models:/lead_model/Production")
-```
 
 ## Data Management
 
@@ -317,113 +278,50 @@ The project uses DVC to version control the raw dataset:
 GitHub Raw URL → DVC Cache → src/data/raw_data.csv → Processing → artifacts/
 ```
 
-### Updating Data
-
-To update the dataset:
-```bash
-cd src/data
-# Update raw_data.csv with new data
-dvc add raw_data.csv
-git add raw_data.csv.dvc .gitignore
-git commit -m "Update dataset"
-git push
-```
-
-### Data Statistics
-- **Format:** CSV
-- **Size:** ~1.3 MB
-- **Records:** ~10,000 leads
-- **Features:** Customer demographics, lead source, engagement metrics
-- **Target:** Binary lead conversion indicator
-
 ## CI/CD Pipeline Flow
 
+```mermaid
+flowchart TD
+    A[Push to main] --> B[GitHub Actions Triggered]
+    
+    B --> C[Setup Environment<br/>Go · DVC]
+    C --> D[Pull Data from DVC]
+    D --> E[Run Dagger Pipeline]
+    
+    E --> F
+    
+    subgraph DAGGER["Dagger Container - Docker"]
+        F[Data Processing]
+        G[Model Training]
+        H[Model Evaluation]
+        I[Model Deployment]
+        J[artifacts/]
+        
+        F -->|processed data| G
+        G -->|trained models| H
+        H -->|best model| I
+        I -->|export| J
+    end
+    
+    J --> K[Export Artifacts]
+    K --> L[Upload Model to GitHub]
+    L --> M[Model Inference Validation<br/>External Action]
+    
+    subgraph VALIDATION["Inference Validation"]
+        N[Download Model Artifact]
+        O[Load Model<br/>scikit-learn]
+        P[Run Inference Tests]
+        Q[Validate Predictions]
+        
+        N --> O --> P --> Q
+    end
+    
+    M --> N
+    
+    style DAGGER fill:none,stroke:#333,stroke-width:2px
+    style VALIDATION fill:none,stroke:#333,stroke-width:2px
+    style Q fill:#4CAF50,stroke:#333,color:#000
 ```
-┌─────────────────┐
-│  Push to main   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│   GitHub Actions Triggered          │
-├─────────────────────────────────────┤
-│ 1. Setup environment (Go, DVC)      │
-│ 2. Pull data from DVC               │
-│ 3. Run Dagger pipeline:             │
-│    ┌──────────────────────────┐    │
-│    │  Docker Container        │    │
-│    │  - Data processing       │    │
-│    │  - Model training        │    │
-│    │  - Model evaluation      │    │
-│    │  - Model deployment      │    │
-│    └──────────────────────────┘    │
-│ 4. Export artifacts                 │
-│ 5. Upload model to GitHub           │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Model Inference Validation         │
-│  (External Action)                  │
-├─────────────────────────────────────┤
-│ - Download model artifact           │
-│ - Load model with scikit-learn      │
-│ - Run inference tests               │
-│ - Validate predictions              │
-└────────┬────────────────────────────┘
-         │
-         ▼
-    ✅ Success / ❌ Failure
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**1. DVC Pull Fails**
-```bash
-# Ensure you're in the correct directory
-cd src/data
-dvc pull -v  # Verbose output for debugging
-```
-
-**2. Docker Build Fails**
-```bash
-# Clear Docker cache
-docker system prune -a
-docker build --no-cache -t mlops-pipeline .
-```
-
-**3. Protobuf Import Error**
-- Ensure `protobuf<5.0.0,>=3.20.0` is in requirements.txt
-- MLflow 2.11.3 requires protobuf <5.0.0
-
-**4. Module Import Errors in Container**
-- Ensure `ENV PYTHONPATH=/app` is set in Dockerfile
-- Check that `src/` directory structure is preserved
-
-**5. Pipeline Artifacts Not Found**
-- Check that `artifacts/` directory is created before use
-- Verify export path in `pipeline.go`: `artDir.Export(ctx, "../artifacts")`
-
-## Contributing
-
-This project follows standard Git workflow:
-
-1. Create a feature branch: `git checkout -b feat/feature-name`
-2. Make changes and commit: `git commit -m "feat: add feature"`
-3. Push and create PR: `git push origin feat/feature-name`
-4. Merge after CI passes
-
-**Commit Convention:**
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `refactor:` - Code restructuring
-- `docs:` - Documentation updates
-
-## License
-
-This project is part of ITU BDS MLOPS'25 coursework.
 
 ## Authors
 
