@@ -58,25 +58,16 @@ jobs:
             workflow/artifacts/**
             artifacts/**
 
+      - name: Upload Model Artifact
+        uses: actions/upload-artifact@v4.4.0
+        with:
+          name: model
+          path: workflow/artifacts/lead_model_lr.pkl
+
   inference:
-    name: Validate artifacts
+    name: Run Model Inference Test
     runs-on: ubuntu-latest
     needs: [dagger]
     steps:
-      - name: Download pipeline artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: pipeline-artifacts
-          path: ./artifacts
-
-      - name: Check artifacts exist
-        run: |
-          echo "Checking pipeline artifacts..."
-          ls -R ./artifacts
-          
-          # Verify key artifact files exist
-          test -f ./artifacts/training_data.csv && echo "✓ training_data.csv found" || echo "✗ training_data.csv missing"
-          test -f ./artifacts/X_test.csv && echo "✓ X_test.csv found" || echo "✗ X_test.csv missing"
-          test -f ./artifacts/y_test.csv && echo "✓ y_test.csv found" || echo "✗ y_test.csv missing"
-          
-          echo "Artifact validation complete"
+      - name: Run Model Inference Test Action
+        uses: lasselundstenjensen/itu-sdse-project-model-validator@main
