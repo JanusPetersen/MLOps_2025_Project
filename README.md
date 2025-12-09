@@ -7,7 +7,6 @@ A containerized machine learning pipeline for predicting lead conversion using D
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Pipeline Stages](#pipeline-stages)
-- [Technologies Used](#technologies-used)
 - [Getting Started](#getting-started)
 - [GitHub Actions Workflow](#github-actions-workflow)
 - [Local Development](#local-development)
@@ -181,28 +180,6 @@ MLOps_2025_Project/
 - Set model stage (Staging/Production)
 - Track model versions
 - Wait for model readiness
-
-## Technologies Used
-
-### Core Technologies
-- **Python 3.10** - Primary programming language
-- **Dagger (Go SDK)** - Pipeline orchestration and containerization
-- **Docker** - Container runtime
-- **GitHub Actions** - CI/CD automation
-
-### ML/Data Stack
-- **scikit-learn 1.3.2** - ML algorithms and preprocessing
-- **XGBoost 1.7.6** - Gradient boosting models
-- **pandas 2.2.2** - Data manipulation
-- **numpy 1.26.4** - Numerical computing
-- **MLflow 2.11.3** - Experiment tracking and model registry
-- **DVC 3.59.1** - Data version control
-
-### Other Libraries
-- **matplotlib 3.8.4** - Plotting and visualization
-- **joblib 1.3.2** - Model serialization
-- **scipy 1.12.0** - Scientific computing
-- **protobuf <5.0.0** - MLflow compatibility
 
 ## Getting Started
 
@@ -460,8 +437,8 @@ This project is part of ITU BDS MLOPS'25 coursework.
 
 ## Authors
 
-- **Frederik** - Pipeline implementation, Dagger orchestration, CI/CD setup
-- **Janus Petersen** - GitHub: [@JanusPetersen](https://github.com/JanusPetersen)
+- **Frederik Holbech** - faho@itu.dk
+- **Janus Petersen**  - jspe@itu.dk
 
 ## Acknowledgments
 
