@@ -21,6 +21,17 @@ jobs:
           go-version: 1.25.4
           cache: false
 
+      - name: Install DVC on runner
+        run: python -m pip install --upgrade pip && pip install "dvc[all]"
+
+      - name: Pull data via DVC on runner
+        run: |
+          cd src/data
+          dvc pull -v
+          cd ../..
+          echo "Data files fetched:"
+          ls -lh src/data/*.csv || echo "No CSV files found"
+
       - name: Run Dagger pipeline
         uses: dagger/dagger-for-github@v8.2.0
         with:
@@ -29,8 +40,17 @@ jobs:
           args: go run .
           version: "0.19.6"
 
+      - name: Print data step error log (if any)
+        if: failure()
+        run: |
+          echo "----- Checking for error logs -----"
+          if [ -f artifacts/data_py_error.log ]; then
+            echo "=== data_py_error.log ==="
+            cat artifacts/data_py_error.log
+          fi
+
       - name: Upload produced artifacts
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pipeline-artifacts

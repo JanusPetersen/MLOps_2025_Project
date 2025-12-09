@@ -21,19 +21,6 @@ os.makedirs("artifacts",exist_ok=True)
 warnings.filterwarnings('ignore')
 pd.set_option('display.float_format',lambda x: "%.3f" % x)
 
-#Pull data from DVC in the root of the project
-def dvc_pull():
-    project_root = Path(__file__).resolve().parent
-
-    subprocess.run(
-        ["dvc", "pull"],
-        cwd=project_root,
-        check=True
-    )
-
-dvc_pull()
-
-
 data = pd.read_csv("src/data/raw_data.csv")
 
 #Making sure date limits are set correctly
