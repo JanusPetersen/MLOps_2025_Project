@@ -70,10 +70,12 @@ params = {
     "max_depth": randint(3, 10),
     "subsample": uniform(0, 1),
     "objective": ["reg:squarederror", "binary:logistic", "reg:logistic"],
-    "eval_metric": ["aucpr", "error"]
+    "eval_metric": ["aucpr", "error"],
 }
 
-model_grid = RandomizedSearchCV(model, param_distributions=params, n_jobs=-1, verbose=3, n_iter=10, cv=10)
+model_grid = RandomizedSearchCV(
+    model, param_distributions=params, n_jobs=-1, verbose=3, n_iter=10, cv=10
+)
 
 model_grid.fit(X_train, y_train)
 
@@ -90,7 +92,9 @@ os.makedirs(output_dir, exist_ok=True)
 
 # Test set confusion matrix and report
 conf_matrix = confusion_matrix(y_test, y_pred_test)
-test_crosstab = pd.crosstab(y_test, y_pred_test, rownames=['Actual'], colnames=['Predicted'], margins=True)
+test_crosstab = pd.crosstab(
+    y_test, y_pred_test, rownames=["Actual"], colnames=["Predicted"], margins=True
+)
 
 test_crosstab.to_csv(os.path.join(output_dir, "XGBoost_confusion_matrix_test.csv"))
 
@@ -100,12 +104,16 @@ with open(os.path.join(output_dir, "XGBoost_classification_report_test.txt"), "w
 
 # Train set confusion matrix and report
 conf_matrix = confusion_matrix(y_train, y_pred_train)
-train_crosstab = pd.crosstab(y_train, y_pred_train, rownames=['Actual'], colnames=['Predicted'], margins=True)
+train_crosstab = pd.crosstab(
+    y_train, y_pred_train, rownames=["Actual"], colnames=["Predicted"], margins=True
+)
 
 train_crosstab.to_csv(os.path.join(output_dir, "XGBoost_confusion_matrix_train.csv"))
 
 train_report = classification_report(y_train, y_pred_train)
-with open(os.path.join(output_dir, "XGBoost_classification_report_train.txt"), "w") as f:
+with open(
+    os.path.join(output_dir, "XGBoost_classification_report_train.txt"), "w"
+) as f:
     f.write(train_report)
 
 # Save the best XGBoost model
@@ -117,11 +125,12 @@ model_results = {
     xgboost_model_path: classification_report(y_train, y_pred_train, output_dict=True)
 }
 
+
 # Logistic Regression model for comparison
 class lr_wrapper(mlflow.pyfunc.PythonModel):
     def __init__(self, model):
         self.model = model
-    
+
     def predict(self, context, model_input):
         return self.model.predict_proba(model_input)[:, 1]
 
@@ -134,11 +143,13 @@ with mlflow.start_run(experiment_id=experiment_id) as run:
     lr_model_path = "./artifacts/lead_model_lr.pkl"
 
     params = {
-              'solver': ["newton-cg", "lbfgs", "liblinear", "sag", "saga"],
-              'penalty':  ["none", "l1", "l2", "elasticnet"],
-              'C' : [100, 10, 1.0, 0.1, 0.01]
+        "solver": ["newton-cg", "lbfgs", "liblinear", "sag", "saga"],
+        "penalty": ["none", "l1", "l2", "elasticnet"],
+        "C": [100, 10, 1.0, 0.1, 0.01],
     }
-    model_grid = RandomizedSearchCV(model, param_distributions= params, verbose=3, n_iter=10, cv=3)
+    model_grid = RandomizedSearchCV(
+        model, param_distributions=params, verbose=3, n_iter=10, cv=3
+    )
     model_grid.fit(X_train, y_train)
 
     best_model = model_grid.best_estimator_
@@ -146,20 +157,21 @@ with mlflow.start_run(experiment_id=experiment_id) as run:
     y_pred_train = model_grid.predict(X_train)
     y_pred_test = model_grid.predict(X_test)
 
-
     # log artifacts
-    mlflow.log_metric('f1_score', f1_score(y_test, y_pred_test))
+    mlflow.log_metric("f1_score", f1_score(y_test, y_pred_test))
     mlflow.log_artifacts("artifacts", artifact_path="model")
     mlflow.log_param("data_version", "00000")
-    
+
     # store model for model interpretability
-    joblib.dump(value=model, filename=lr_model_path)
-        
-    # Custom python model for predicting probability 
-    mlflow.pyfunc.log_model('model', python_model=lr_wrapper(model))
+    joblib.dump(value=best_model, filename=lr_model_path)
+
+    # Custom python model for predicting probability
+    mlflow.pyfunc.log_model("model", python_model=lr_wrapper(best_model))
 
 
-model_classification_report = classification_report(y_test, y_pred_test, output_dict=True)
+model_classification_report = classification_report(
+    y_test, y_pred_test, output_dict=True
+)
 
 best_model_lr_params = model_grid.best_params_
 
@@ -167,7 +179,9 @@ best_model_lr_params = model_grid.best_params_
 
 # Test set confusion matrix and report
 conf_matrix = confusion_matrix(y_test, y_pred_test)
-test_crosstab = pd.crosstab(y_test, y_pred_test, rownames=['Actual'], colnames=['Predicted'], margins=True)
+test_crosstab = pd.crosstab(
+    y_test, y_pred_test, rownames=["Actual"], colnames=["Predicted"], margins=True
+)
 
 test_crosstab.to_csv(os.path.join(output_dir, "LR_confusion_matrix_test.csv"))
 
@@ -177,7 +191,9 @@ with open(os.path.join(output_dir, "LR_classification_report_test.txt"), "w") as
 
 # Train set confusion matrix and report
 conf_matrix = confusion_matrix(y_train, y_pred_train)
-train_crosstab = pd.crosstab(y_train, y_pred_train, rownames=['Actual'], colnames=['Predicted'], margins=True)
+train_crosstab = pd.crosstab(
+    y_train, y_pred_train, rownames=["Actual"], colnames=["Predicted"], margins=True
+)
 
 train_crosstab.to_csv(os.path.join(output_dir, "LR_confusion_matrix_train.csv"))
 
@@ -189,11 +205,11 @@ with open(os.path.join(output_dir, "LR_classification_report_train.txt"), "w") a
 model_results[lr_model_path] = model_classification_report
 
 # Save column list and model results
-column_list_path = './artifacts/columns_list.json'
-with open(column_list_path, 'w+') as columns_file:
-    columns = {'column_names': list(X_train.columns)}
+column_list_path = "./artifacts/columns_list.json"
+with open(column_list_path, "w+") as columns_file:
+    columns = {"column_names": list(X_train.columns)}
     json.dump(columns, columns_file)
 
 model_results_path = "./artifacts/model_results.json"
-with open(model_results_path, 'w+') as results_file:
+with open(model_results_path, "w+") as results_file:
     json.dump(model_results, results_file)
